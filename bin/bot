@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+require "bundler"
+require "yaml"
+
+Bundler.require
+Dotenv.load
+
+require_relative "../lib/authorizer.rb"
+
+unless File.exists?("config.yml")
+  access_token = Authorizer.authorize
+
+  File.open("config.yml", "w+") do |f|
+    f.puts("twitter_token: #{access_token.token}\ntwitter_secret: #{access_token.secret}")
+  end
+end
+
+twitter_config = YAML::load_file("config.yml")
+
+client = Twitter::REST::Client.new do |config|
+  config.consumer_key        = ENV["TWITTER_CONSUMER_KEY"]
+  config.consumer_secret     = ENV["TWITTER_CONSUMER_SECRET"]
+  config.access_token        = twitter_config["twitter_token"]
+  config.access_token_secret = twitter_config["twitter_secret"]
+end
+
+client.update("I'm tweeting with @gem!")
